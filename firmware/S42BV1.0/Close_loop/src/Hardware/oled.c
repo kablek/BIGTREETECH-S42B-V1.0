@@ -34,7 +34,7 @@ uint8_t OLED_TRANSFER_BUFFER=0x00;
 		OLED_CMD_NOP
 	};
 	uint8_t OLED_CURRENT_ROLLING_COMMAND=0; //variable for keeping track of currently sent command
-#endif
+#endif /* OLED_CORRUPTION_PREVENTION_SYSTEM */
 
 /**
   * @brief Function for writting command bytes
@@ -74,6 +74,19 @@ void OLED_Display_Off(void)
 }		   			 
 
 /**
+  * @brief Change Display Clock Divide Ratio/ Oscillator Frequency (for compatibility with TrueStep firmware fork)
+  * @param val Clock Divide Ratio/ Oscillator Frequency register value
+  * @retval None
+  */ 
+void OLED_SetDisplayClock(uint8_t val)
+{
+	OLED_Write_Command(OLED_CMD_DISPLAY_POWER);		//power off display
+	OLED_Write_Command(OLED_CMD_DISPLAY_CLK);			//Write new clk value
+	OLED_Write_Command(val);							//1byte arg
+	OLED_Write_Command(OLED_CMD_DISPLAY_POWER|0x01);	//power display back on
+}
+
+/**
   * @brief Clear display screen GRAM
   * @param none
   * @retval None
@@ -101,7 +114,7 @@ void OLED_DrawPoint(uint8_t x,uint8_t y,uint8_t t)
 	bx=y%8;			
 	temp=1<<(7-bx);	
 	if(t)OLED_GRAM[x][pos]|=temp;
-	else OLED_GRAM[x][pos]&=~temp;	    //TODO: figure out a bit cleaner way of doing this, especiali color definition
+	else OLED_GRAM[x][pos]&=~temp;	    //TODO: figure out a bit cleaner way of doing this? especiali color definition
 }
 
 /**
@@ -123,20 +136,38 @@ void OLED_Fill(uint8_t x1,uint8_t y1,uint8_t x2,uint8_t y2,uint8_t dot)
 }
 
 
-//TODO:: Comment this function
+/**
+  * @brief Draw single character on screen
+  * @param x character position
+  * @param y character position
+  * @param chr character code
+  * @param size Font size
+  * @param mode character color NOTE:we are having veeeery shady implementation here.
+  * @retval None
+  */ 	
 void OLED_ShowChar(uint8_t x,uint8_t y,char chr,uint8_t size,uint8_t mode)
 {      			    
 	uint8_t temp,t,t1;
 	uint8_t y0=y;
 	chr=chr-' ';			   
     for(t=0;t<size;t++)
-    {   
+    {
+		switch(size)
+		{
 
-		temp=oled_asc2_1608[(uint8_t) chr][t];		                           
+			case 12:
+			break;
+				temp=oled_asc2_1206[(uint8_t) chr][t];
+			case 16:
+			default:
+				temp=oled_asc2_1608[(uint8_t) chr][t];	
+			break;
+		}
+                          
         for(t1=0;t1<8;t1++)
 		{
 			if(temp&0x80)OLED_DrawPoint(x,y,mode);
-			else OLED_DrawPoint(x,y,!mode);
+			else OLED_DrawPoint(x,y,!mode);			//note that in case of selecting black text background would auto white with this implementation
 			temp<<=1;
 			y++;
 			if((y-y0)==size)
@@ -149,7 +180,7 @@ void OLED_ShowChar(uint8_t x,uint8_t y,char chr,uint8_t size,uint8_t mode)
     } 	
 }
 
-//TODO:: Comment this function
+//TODO:: Comment this function, something to do with number conversion?
 uint32_t oled_pow(uint8_t m,uint8_t n)
 {
 	uint32_t result=1;	 
@@ -157,12 +188,15 @@ uint32_t oled_pow(uint8_t m,uint8_t n)
 	return result;
 }		
 
-//TODO:: Comment this function.... properly
-//x,y :	 
-//len :
-//size:
-//mode:	0,;1,
-//num:(0~4294967295);	 		  
+/**
+  * @brief Draw number on screen
+  * @param x character position
+  * @param y character position
+  * @param num Number to be drawn
+  * @param len som sort of lenght?? shady implementation
+  * @param size font size
+  * @retval None
+  */ 			  
 void OLED_ShowNum(uint8_t x,uint8_t y,uint32_t num,uint8_t len,uint8_t size)
 {         	
 	uint8_t t,temp;
@@ -181,7 +215,14 @@ void OLED_ShowNum(uint8_t x,uint8_t y,uint32_t num,uint8_t len,uint8_t size)
 	 	OLED_ShowChar(x+(size/2)*t,y,temp+'0',size,1); 
 	}
 } 
-//Comment this function
+
+/**
+  * @brief Draw number on screen
+  * @param x character position
+  * @param y character position
+  * @param p string, shady implementation again, no size or color control
+  * @retval None
+  */ 	
 void OLED_ShowString(uint8_t x,uint8_t y,const char *p)
 {
 #define MAX_CHAR_POSX 120
@@ -195,46 +236,6 @@ void OLED_ShowString(uint8_t x,uint8_t y,const char *p)
         p++;
     }  
 }	   
-
-//TODO:: figgure out what this is supposed to be
-/*
-void OLED_Showword(uint8_t x,uint8_t y,uint8_t *num,uint8_t mode)
-{
-	uint8_t t,t1,t2;
-	uint8_t temp;
-	uint8_t y0=y;
-//	t=*num;
-	for(t=0;t<50;t++)	
-	{
-		if((*num==word[t].Index[0])&&(*(num+1)==word[t].Index[1]))//
-		{
-			for(t1=0;t1<32;t1++)		//
-			{
-				temp=word[t].Msk[t1];
-				for(t2=0;t2<8;t2++)	//
-				{
-					if(temp&0x80)			//
-						OLED_DrawPoint(x,y,1);
-					else
-						OLED_DrawPoint(x,y,0);
-					temp<<=1;
-					y++	;				//
-//					if(y>=127) {return ;}		//
-					if((y-y0)==16)		//
-					{
-						y=y0;
-						x++;			
-						if(x>=127) return;	
-						break;				
-					}
-				}
-			}//
-		
-		}
-	}	
-		OLED_Refresh_Gram();
-}
-*/
 
 /**
   * @brief Complete OLED screen initialization. Hardware included.
@@ -414,9 +415,9 @@ void TIM15_IRQHandler(void)
 				OLED_COMMAND_BUFFER_READINDEX%=OLED_COMMAND_BUFFER_SIZE;
 
 				#ifdef OLED_VARIABLE_TRANSFER_SPEED						//NOTE: System to make Data and Command bytes different speed (to aid stability?) Disable by commenting definition in oled.h
-				LL_TIM_SetAutoReload(TIM15,OLED_CMD_PERIOD_LENGTH);
-				LL_TIM_OC_SetCompareCH2(TIM15,OLED_CMD_PREP_TIME);
-				#endif
+					LL_TIM_SetAutoReload(TIM15,OLED_CMD_PERIOD_LENGTH);
+					LL_TIM_OC_SetCompareCH2(TIM15,OLED_CMD_PREP_TIME);
+				#endif /* OLED_VARIABLE_TRANSFER_SPEED */
 			}
 			else	//Or just load next graphic byte
 			{
@@ -424,9 +425,9 @@ void TIM15_IRQHandler(void)
 				OLED_TRANSFER_BUFFER=OLED_GRAM[OLED_CURRENTLY_WRITTEN_X][OLED_CURRENTLY_WRITTEN_Y]; //Load next GFX byte
 
 				#ifdef OLED_VARIABLE_TRANSFER_SPEED						//NOTE: System to make Data and Command bytes different speed (to aid stability?) Disable by commenting definition in oled.h
-				LL_TIM_SetAutoReload(TIM15,OLED_DATA_PERIOD_LENGTH);
-				LL_TIM_OC_SetCompareCH2(TIM15,OLED_DATA_PREP_TIME);
-				#endif
+					LL_TIM_SetAutoReload(TIM15,OLED_DATA_PERIOD_LENGTH);
+					LL_TIM_OC_SetCompareCH2(TIM15,OLED_DATA_PREP_TIME);
+				#endif /* OLED_VARIABLE_TRANSFER_SPEED */
 				/* code */
 			}
 			OLED_CURRENT_BITMASK=0x80;
@@ -441,11 +442,11 @@ void TIM15_IRQHandler(void)
 				{
 					OLED_CURRENTLY_WRITTEN_Y++;
 					OLED_CURRENTLY_WRITTEN_Y%=8;
-	#ifdef OLED_CORRUPTION_PREVENTION_SYSTEM
-					OLED_CURRENT_ROLLING_COMMAND++;
-					OLED_CURRENT_ROLLING_COMMAND%=8;
-					OLED_Write_Command (OLED_ROLLING_COMMANDS[OLED_CURRENT_ROLLING_COMMAND]);
-	#endif
+					#ifdef OLED_CORRUPTION_PREVENTION_SYSTEM
+						OLED_CURRENT_ROLLING_COMMAND++;
+						OLED_CURRENT_ROLLING_COMMAND%=8;
+						OLED_Write_Command (OLED_ROLLING_COMMANDS[OLED_CURRENT_ROLLING_COMMAND]);
+					#endif /* OLED_CORRUPTION_PREVENTION_SYSTEM */
 					OLED_Write_Command (OLED_CMD_PAGE_START_ADDRESS+OLED_CURRENTLY_WRITTEN_Y);  
 					OLED_Write_Command (OLED_CMD_COLUMN_START_LO);      
 					OLED_Write_Command (OLED_CMD_COLUMN_START_HI); 
