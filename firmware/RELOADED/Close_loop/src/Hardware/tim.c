@@ -57,6 +57,7 @@ void MX_TIM1_Init(void)
   LL_TIM_SetClockSource(TIM1, LL_TIM_CLOCKSOURCE_EXT_MODE2);
   LL_TIM_SetTriggerOutput(TIM1, LL_TIM_TRGO_RESET);
   LL_TIM_DisableMasterSlaveMode(TIM1);
+  LL_TIM_EnableCounter(TIM1);
 
 }
 /* TIM3 init function */
@@ -124,9 +125,13 @@ void MX_TIM15_Init(void)
   /* Peripheral clock enable */
   LL_APB1_GRP2_EnableClock(LL_APB1_GRP2_PERIPH_TIM15);
 
-  TIM_InitStruct.Prescaler = 4000;
+	/* TIM15 interrupt Init */
+	NVIC_SetPriority(TIM15_IRQn, 0);		//TODO:: Figure out NVIC priorities 
+	NVIC_EnableIRQ(TIM15_IRQn);
+
+  TIM_InitStruct.Prescaler = 0;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = 48000;
+  TIM_InitStruct.Autoreload = OLED_DATA_PERIOD_LENGTH;
   TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV4;
   TIM_InitStruct.RepetitionCounter = 0;
   LL_TIM_Init(TIM15, &TIM_InitStruct);
@@ -136,7 +141,7 @@ void MX_TIM15_Init(void)
   TIM_OC_InitStruct.OCMode = LL_TIM_OCMODE_PWM2;
   TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_DISABLE;
   TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_DISABLE;
-  TIM_OC_InitStruct.CompareValue = 0;
+  TIM_OC_InitStruct.CompareValue = OLED_DATA_PREP_TIME;
   TIM_OC_InitStruct.OCPolarity = LL_TIM_OCPOLARITY_HIGH;
   TIM_OC_InitStruct.OCNPolarity = LL_TIM_OCPOLARITY_HIGH;
   TIM_OC_InitStruct.OCIdleState = LL_TIM_OCIDLESTATE_LOW;

@@ -319,6 +319,8 @@ void OLED_Init(void)
 	LL_TIM_CC_EnableChannel(TIM15, LL_TIM_CHANNEL_CH2);				//Enable output channel
 	LL_TIM_EnableIT_UPDATE(TIM15);									//Enable interrupt
 	LL_TIM_EnableCounter(TIM15);									//Start the timer
+
+	//TODO: timer init values from header?
 }  
 
 #if 0	//following code is removed/deprecated due to new version being moved into tim.c/tim.h files

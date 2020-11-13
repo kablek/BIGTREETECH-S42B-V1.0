@@ -99,12 +99,12 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM3_Init();
   MX_USART1_UART_Init();
-  MX_TIM15_Init();
-
+  //MX_TIM15_Init();
+  
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-
+  OLED_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -117,10 +117,10 @@ int main(void)
     //This here is simple test code for OLED
     OLED_ShowString(16,0,"OLED TEST"); //first row just write solid text
     OLED_ShowString(16,16,"clk: "); //Random system tick based timer
-    OLED_ShowNum(16*6,16,SystemTimer/1000,2,16);
+    OLED_ShowNum(16*6,16,SystemTimer++,2,16);
 
     //For the third row we are going to look at data received over step input from main board.
-    OLED_ShowNum(16*6,16,LL_TIM_GetCounter(TIM1),2,16);
+    OLED_ShowNum(16,32,LL_TIM_GetCounter(TIM1),8,16);
 
     //This is dirty way of step dirrection handling... for now:
 
@@ -135,7 +135,7 @@ int main(void)
         }
     
     //and for the final row I am going to look at RCR register for I believe it could help us out quite a bit:
-    OLED_ShowNum(16*6,16,LL_TIM_GetRepetitionCounter(TIM1),2,16);
+    OLED_ShowNum(16,48,LL_TIM_GetRepetitionCounter(TIM1),8,16);
   
 
     /* USER CODE BEGIN 3 */
